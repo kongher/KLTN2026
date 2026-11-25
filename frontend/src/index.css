@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-spa-primary: #6b8068;
+  --color-spa-dark: #3f5140;
+  --color-spa-bg: #f7f5f0;
+  --color-spa-white: #ffffff;
+  --color-spa-text: #263026;
+  --color-spa-muted: #7a8178;
+  --color-spa-accent: #c9a46c;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f7f5f0;
+  color: #263026;
+}
