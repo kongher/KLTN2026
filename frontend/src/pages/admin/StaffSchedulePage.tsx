@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import ScheduleDayDetailModal from "../../components/ScheduleDayDetailModal";
 import {
   changeScheduleStatus,
   createSchedule,
@@ -51,6 +52,7 @@ export default function StaffSchedulePage() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<StaffSchedule | null>(null);
+  const [detailSchedule, setDetailSchedule] = useState<StaffSchedule | null>(null);
 
   const title = useMemo(
     () => (staff ? `Lịch làm việc · ${staff.name}` : "Lịch làm việc"),
@@ -339,6 +341,13 @@ export default function StaffSchedulePage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      className="text-spa-primary"
+                      onClick={() => setDetailSchedule(schedule)}
+                    >
+                      Xem chi tiết
+                    </button>
                     <button type="button" className="text-spa-primary" onClick={() => startEdit(schedule)}>
                       Sửa
                     </button>
@@ -380,6 +389,13 @@ export default function StaffSchedulePage() {
           </button>
         </div>
       ) : null}
+
+      <ScheduleDayDetailModal
+        open={Boolean(detailSchedule)}
+        schedule={detailSchedule}
+        staffId={staffId || ""}
+        onClose={() => setDetailSchedule(null)}
+      />
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}

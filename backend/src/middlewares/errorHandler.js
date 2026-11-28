@@ -13,23 +13,38 @@ function errorHandler(err, req, res, next) {
       message = "Email already exists";
     } else if (fields.includes("phone")) {
       message = "Phone already exists";
+    } else if (fields.includes("code")) {
+      message = "Coupon code already exists";
     } else {
       message = "Duplicate value";
     }
   }
 
-  if (statusCode >= 500) {
-    console.error(err);
+  if (err.code === "P2021" || err.code === "P2022") {
+    statusCode = 503;
+    message =
+      "Database schema is out of date. Run Prisma migrations on the server and restart the backend.";
   }
+
+  if (err.code === "P2003") {
+    statusCode = 400;
+    message = "Related record not found";
+  }
+
+  if (statusCode >= 500 && !err.isOperational) {
+    console.error(err);
+  } else if (statusCode >= 500) {
+    console.error(`[operational ${statusCode}]`, message);
+  }
+
+  const schemaOutOfDate = err.code === "P2021" || err.code === "P2022";
+  const clientMessage =
+    err.isOperational || statusCode < 500 || schemaOutOfDate ? message : "Internal server error";
 
   const payload = {
     success: false,
-    message: statusCode >= 500 ? "Internal server error" : message,
+    message: clientMessage,
   };
-
-  if (statusCode < 500) {
-    payload.message = message;
-  }
 
   return res.status(statusCode).json(payload);
 }

@@ -7,6 +7,7 @@ function toPublicUser(user) {
     role: user.role?.name || user.role,
     avatar: user.avatar,
     status: user.status,
+    marketingEmailOptIn: user.marketingEmailOptIn !== false,
   };
 }
 

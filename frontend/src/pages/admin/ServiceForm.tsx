@@ -10,6 +10,7 @@ export default function ServiceForm() {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -33,6 +34,7 @@ export default function ServiceForm() {
     if (!id) return;
     fetchService(id)
       .then((service) => {
+        setCode(service.code);
         setName(service.name);
         setDescription(service.description || "");
         setPrice(String(service.price));
@@ -50,6 +52,7 @@ export default function ServiceForm() {
     setSaving(true);
 
     const payload = {
+      code: code.trim(),
       name,
       description,
       price: Number(price),
@@ -80,6 +83,22 @@ export default function ServiceForm() {
       </h2>
       <form onSubmit={(event) => void handleSubmit(event)} className="mt-6 space-y-4">
         {error ? <p className="text-sm text-rose-700">{error}</p> : null}
+        <label className="block text-sm">
+          Mã dịch vụ
+          <input
+            className="mt-1 w-full rounded-xl border px-3 py-2 uppercase"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            pattern="[A-Za-z0-9_-]{2,50}"
+            title="2–50 ký tự: chữ, số, gạch dưới, gạch ngang. Không phân biệt hoa thường."
+            required
+            maxLength={50}
+            placeholder="VD: MASS001"
+          />
+          <span className="mt-1 block text-xs text-spa-muted">
+            Bắt buộc, không trùng (không phân biệt hoa/thường). Đổi tên dịch vụ không tự đổi mã.
+          </span>
+        </label>
         <label className="block text-sm">
           Tên
           <input

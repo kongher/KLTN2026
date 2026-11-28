@@ -41,7 +41,7 @@ export default function AdminDashboard() {
           className="rounded-2xl bg-spa-white p-5 shadow-sm hover:bg-spa-primary/5"
         >
           <p className="text-xs uppercase tracking-[0.2em] text-spa-accent">Cài đặt</p>
-          <h3 className="mt-2 text-lg font-semibold text-spa-dark">Nội dung trang chủ</h3>
+          <h3 className="mt-2 text-lg font-semibold text-spa-dark">Cài đặt trang chủ</h3>
           <p className="mt-2 text-sm text-spa-muted">
             Sửa slogan, địa chỉ, đăng ảnh hero/gallery và cập nhật đánh giá, ưu đãi.
           </p>
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
           to="/admin/bookings"
           className="rounded-2xl bg-spa-white p-5 shadow-sm hover:bg-spa-primary/5"
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-spa-accent">Lịch hẹn</p>
+        
           <h3 className="mt-2 flex items-center text-lg font-semibold text-spa-dark">
             Quản lý Lịch hẹn
             <CountBadge count={pendingCount} />
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
           </p>
         </Link>
         <Link to="/admin/staff" className="rounded-2xl bg-spa-white p-5 shadow-sm hover:bg-spa-primary/5">
-          <p className="text-xs uppercase tracking-[0.2em] text-spa-accent">Task 1</p>
+   
           <h3 className="mt-2 text-lg font-semibold text-spa-dark">Quản lý nhân viên</h3>
           <p className="mt-2 text-sm text-spa-muted">
             Danh sách, thêm mới, xem chi tiết và sửa thông tin cá nhân/chuyên môn.
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
           to="/admin/schedules"
           className="rounded-2xl bg-spa-white p-5 shadow-sm hover:bg-spa-primary/5"
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-spa-accent">Task 2</p>
+  
           <h3 className="mt-2 text-lg font-semibold text-spa-dark">Lịch làm việc</h3>
           <p className="mt-2 text-sm text-spa-muted">
             Xem lịch từng nhân viên, xếp lịch mới, sửa hoặc xóa ca làm việc.
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
           to="/admin/accounts"
           className="rounded-2xl bg-spa-white p-5 shadow-sm hover:bg-spa-primary/5"
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-spa-accent">Task 3</p>
+    
           <h3 className="mt-2 text-lg font-semibold text-spa-dark">Tài khoản & Bảo mật</h3>
           <p className="mt-2 text-sm text-spa-muted">
             Khóa/mở khóa, xóa tài khoản và đổi email, mật khẩu, quyền.

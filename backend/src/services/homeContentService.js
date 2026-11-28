@@ -1,5 +1,44 @@
 const prisma = require("../config/prisma");
-const { DEFAULT_HOME_SETTINGS, mergeHomeSettings } = require("../data/defaultHomeSettings");
+const AppError = require("../utils/appError");
+const {
+  createHomeLayoutTemplate,
+  normalizeHomeSettings,
+} = require("../data/defaultHomeSettings");
+
+const MAX_BANNER_SLIDES = 12;
+
+function normalizeBannerSlides(slides) {
+  if (slides === undefined) return undefined;
+  if (!Array.isArray(slides)) {
+    throw new AppError("bannerSlides must be an array", 400);
+  }
+  if (slides.length > MAX_BANNER_SLIDES) {
+    throw new AppError(`Tối đa ${MAX_BANNER_SLIDES} ảnh banner`, 400);
+  }
+
+  const usedOrders = new Set();
+  const normalized = slides.map((raw, index) => {
+    const image = String(raw?.image || "").trim();
+    const sortOrder = Number(raw?.sortOrder);
+    if (!image) {
+      throw new AppError(`Ảnh banner #${index + 1} là bắt buộc`, 400);
+    }
+    if (!Number.isInteger(sortOrder) || sortOrder < 1) {
+      throw new AppError(`Số thứ tự banner #${index + 1} phải là số nguyên ≥ 1`, 400);
+    }
+    if (usedOrders.has(sortOrder)) {
+      throw new AppError("Số thứ tự banner không được trùng nhau", 409);
+    }
+    usedOrders.add(sortOrder);
+
+    const id = String(raw?.id || "").trim() || `banner-${sortOrder}`;
+    const alt = String(raw?.alt || "").trim().slice(0, 200);
+
+    return { id, image, sortOrder, alt };
+  });
+
+  return normalized.sort((a, b) => a.sortOrder - b.sortOrder);
+}
 
 const HOME_SETTING_ID = "home";
 
@@ -41,7 +80,7 @@ async function getSettingsRecord() {
 
   if (!row) {
     row = await prisma.siteSetting.create({
-      data: { id: HOME_SETTING_ID, data: DEFAULT_HOME_SETTINGS },
+      data: { id: HOME_SETTING_ID, data: createHomeLayoutTemplate() },
     });
   }
 
@@ -50,23 +89,27 @@ async function getSettingsRecord() {
 
 async function getHomeSettings() {
   const row = await getSettingsRecord();
-  return mergeHomeSettings(row.data);
+  return normalizeHomeSettings(row.data);
 }
 
 async function updateHomeSettings(payload) {
-  const next = mergeHomeSettings(payload);
+  const bannerSlides = normalizeBannerSlides(payload?.bannerSlides);
+  const next = normalizeHomeSettings({
+    ...payload,
+    ...(bannerSlides !== undefined ? { bannerSlides } : {}),
+  });
   const row = await prisma.siteSetting.upsert({
     where: { id: HOME_SETTING_ID },
     create: { id: HOME_SETTING_ID, data: next },
     update: { data: next },
   });
-  return mergeHomeSettings(row.data);
+  return normalizeHomeSettings(row.data);
 }
 
 async function getHomeContent() {
   const today = startOfToday();
 
-  const [reviews, vouchers, settings] = await Promise.all([
+  const [reviews, settings] = await Promise.all([
     prisma.review.findMany({
       where: {
         status: "VISIBLE",
@@ -84,22 +127,12 @@ async function getHomeContent() {
         service: { select: { name: true } },
       },
     }),
-    prisma.voucher.findMany({
-      where: {
-        status: "ACTIVE",
-        startDate: { lte: today },
-        endDate: { gte: today },
-      },
-      orderBy: { endDate: "asc" },
-      take: 6,
-    }),
     getHomeSettings(),
   ]);
 
   return {
     settings,
     reviews: reviews.map(serializeReview),
-    vouchers: vouchers.map(serializeVoucher),
   };
 }
 

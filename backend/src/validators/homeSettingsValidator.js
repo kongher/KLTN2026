@@ -30,20 +30,23 @@ function validateSettings(req) {
   if (!optionalString(body.heroImage, 500)) errors.push("Ảnh hero quá dài");
   if (!optionalString(body.heroVideo, 500)) errors.push("Video hero quá dài");
 
-  if (body.aboutPoints !== undefined && !arrayOfObjects(body.aboutPoints, 1, 6)) {
-    errors.push("Cần 1-6 điểm nổi bật");
+  if (body.aboutPoints !== undefined && !arrayOfObjects(body.aboutPoints, 0, 6)) {
+    errors.push("Tối đa 6 điểm nổi bật");
   }
-  if (body.aboutStats !== undefined && !arrayOfObjects(body.aboutStats, 1, 8)) {
-    errors.push("Cần 1-8 chỉ số uy tín");
+  if (body.aboutStats !== undefined && !arrayOfObjects(body.aboutStats, 0, 8)) {
+    errors.push("Tối đa 8 chỉ số uy tín");
   }
-  if (body.gallery !== undefined && !arrayOfObjects(body.gallery, 1, 8)) {
-    errors.push("Cần 1-8 ảnh không gian");
+  if (body.gallery !== undefined && !arrayOfObjects(body.gallery, 0, 8)) {
+    errors.push("Tối đa 8 ảnh không gian");
   }
-  if (body.testimonials !== undefined && !arrayOfObjects(body.testimonials, 1, 8)) {
-    errors.push("Cần 1-8 đánh giá");
+  if (body.testimonials !== undefined && !arrayOfObjects(body.testimonials, 0, 8)) {
+    errors.push("Tối đa 8 đánh giá");
   }
-  if (body.promotions !== undefined && !arrayOfObjects(body.promotions, 1, 8)) {
-    errors.push("Cần 1-8 ưu đãi");
+  if (body.promotions !== undefined && !arrayOfObjects(body.promotions, 0, 8)) {
+    errors.push("Tối đa 8 ưu đãi");
+  }
+  if (body.bannerSlides !== undefined && !arrayOfObjects(body.bannerSlides, 0, 12)) {
+    errors.push("Tối đa 12 ảnh banner");
   }
 
   return errors;

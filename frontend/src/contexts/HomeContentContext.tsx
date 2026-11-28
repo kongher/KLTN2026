@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_HOME_SETTINGS, mergeHomeSettings } from "../data/customerHome";
+import { EMPTY_HOME_SETTINGS, normalizeHomeSettings } from "../utils/homeSettings";
 import { fetchHomeContent } from "../services/homeService";
 import type { HomeReview, HomeSettings, HomeVoucher } from "../types/home";
 
@@ -22,7 +22,7 @@ type HomeContentContextValue = {
 const HomeContentContext = createContext<HomeContentContextValue | undefined>(undefined);
 
 export function HomeContentProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<HomeSettings>(DEFAULT_HOME_SETTINGS);
+  const [settings, setSettings] = useState<HomeSettings>(EMPTY_HOME_SETTINGS);
   const [reviews, setReviews] = useState<HomeReview[]>([]);
   const [vouchers, setVouchers] = useState<HomeVoucher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +30,11 @@ export function HomeContentProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const content = await fetchHomeContent();
-      setSettings(mergeHomeSettings(content.settings));
+      setSettings(normalizeHomeSettings(content.settings));
       setReviews(content.reviews || []);
       setVouchers(content.vouchers || []);
     } catch {
-      setSettings(DEFAULT_HOME_SETTINGS);
+      setSettings(EMPTY_HOME_SETTINGS);
       setReviews([]);
       setVouchers([]);
     } finally {

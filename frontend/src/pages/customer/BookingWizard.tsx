@@ -9,6 +9,11 @@ import {
 import { fetchService, fetchServices } from "../../services/catalogService";
 import type { AvailableSlot, BookingStaff } from "../../types/booking";
 import type { SpaService } from "../../types/service";
+import {
+  applyBookingCoupon,
+  fetchAvailableBookingCoupons,
+} from "../../services/couponService";
+import type { ApplyCouponResult, AvailableBookingCoupon } from "../../types/coupon";
 import { formatDuration, formatPrice } from "../../utils/format";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 
@@ -44,6 +49,9 @@ export default function BookingWizard() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableBookingCoupon[]>([]);
+  const [appliedCoupon, setAppliedCoupon] = useState<ApplyCouponResult | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const selectedStaff = useMemo(
     () => staffList.find((item) => item.id === staffId) || null,
@@ -129,6 +137,19 @@ export default function BookingWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, serviceId, staffId, bookingDate]);
 
+  useEffect(() => {
+    if (step !== 4 || !serviceId) {
+      setAvailableCoupons([]);
+      return;
+    }
+    setCouponLoading(true);
+    void fetchAvailableBookingCoupons(serviceId)
+      .then(setAvailableCoupons)
+      .catch(() => setAvailableCoupons([]))
+      .finally(() => setCouponLoading(false));
+    setAppliedCoupon(null);
+  }, [step, serviceId]);
+
   function canGoNext() {
     if (step === 0) return Boolean(serviceId);
     if (step === 1) return Boolean(staffId);
@@ -148,6 +169,7 @@ export default function BookingWizard() {
         bookingDate,
         startTime,
         note,
+        customerCouponId: appliedCoupon?.customerCouponId,
       });
       navigate(`/customer/bookings/${booking.id}`, { replace: true });
     } catch (err) {
@@ -331,10 +353,76 @@ export default function BookingWizard() {
               <div>
                 <dt className="text-spa-muted">Giá</dt>
                 <dd className="font-medium text-spa-primary">
-                  {selectedService ? formatPrice(selectedService.price) : "—"}
+                  {appliedCoupon
+                    ? formatPrice(appliedCoupon.totalAmount)
+                    : selectedService
+                      ? formatPrice(selectedService.price)
+                      : "—"}
                 </dd>
               </div>
             </dl>
+
+            <div className="rounded-2xl border border-spa-primary/20 bg-spa-bg/60 p-4">
+              <h4 className="text-sm font-semibold text-spa-dark">Ưu đãi dành riêng cho bạn</h4>
+              {couponLoading ? (
+                <p className="mt-2 text-sm text-spa-muted">Đang tải mã khả dụng...</p>
+              ) : availableCoupons.length === 0 ? (
+                <p className="mt-2 text-sm text-spa-muted">Không có mã áp dụng cho dịch vụ này.</p>
+              ) : (
+                <ul className="mt-3 space-y-3">
+                  {availableCoupons.map((coupon) => (
+                    <li
+                      key={coupon.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-3 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-spa-dark">{coupon.programName}</p>
+                        <p className="text-xs text-spa-muted">
+                          {coupon.discountLabel} · {coupon.code}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={appliedCoupon?.customerCouponId === coupon.id}
+                        className="rounded-full bg-spa-primary px-4 py-2 text-xs text-white disabled:opacity-50"
+                        onClick={() => {
+                          void applyBookingCoupon(coupon.id, serviceId)
+                            .then(setAppliedCoupon)
+                            .catch((err) =>
+                              setError(getErrorMessage(err, "Không áp dụng được mã"))
+                            );
+                        }}
+                      >
+                        {appliedCoupon?.customerCouponId === coupon.id ? "Đang dùng" : "Sử dụng"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {appliedCoupon ? (
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-3 text-sm">
+                  <p className="font-medium text-spa-dark">
+                    Đang dùng: {appliedCoupon.programName} ({appliedCoupon.couponCode})
+                  </p>
+                  <p className="mt-1 text-spa-muted">
+                    Tạm tính: {formatPrice(appliedCoupon.originalAmount)} −{" "}
+                    {formatPrice(appliedCoupon.discountAmount)} ={" "}
+                    <span className="font-semibold text-spa-primary">
+                      {formatPrice(appliedCoupon.totalAmount)}
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs text-rose-700 hover:underline"
+                    onClick={() => setAppliedCoupon(null)}
+                  >
+                    Bỏ áp dụng mã
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
             <label className="block text-sm">
               Ghi chú (tuỳ chọn)
               <textarea

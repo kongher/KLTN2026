@@ -14,6 +14,8 @@ import {
   loginRequest,
   logoutRequest,
   registerRequest,
+  verifyEmailOtpRequest,
+  type RegisterOtpPending,
 } from "../services/authService";
 
 type AuthContextValue = {
@@ -26,7 +28,8 @@ type AuthContextValue = {
     email: string;
     phone: string;
     password: string;
-  }) => Promise<AuthUser>;
+  }) => Promise<RegisterOtpPending>;
+  verifyEmailOtp: (payload: { email: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: ProfileUser | AuthUser | null) => void;
@@ -110,14 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: string;
       phone: string;
       password: string;
-    }) => {
-      const data = await registerRequest(payload);
-      setUser(data.user);
-      setToken(getStoredToken());
-      return data.user;
-    },
+    }) => registerRequest(payload),
     []
   );
+
+  const verifyEmailOtp = useCallback(async (payload: { email: string; otp: string }) => {
+    const data = await verifyEmailOtpRequest(payload);
+    setUser(data.user);
+    setToken(getStoredToken());
+    return data.user;
+  }, []);
 
   const logout = useCallback(async () => {
     await logoutRequest();
@@ -132,11 +137,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login,
       register,
+      verifyEmailOtp,
       logout,
       refreshUser,
       setUser,
     }),
-    [user, token, loading, login, register, logout, refreshUser]
+    [user, token, loading, login, register, verifyEmailOtp, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

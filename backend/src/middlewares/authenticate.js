@@ -36,7 +36,7 @@ async function authenticate(req, res, next) {
     }
 
     if (isAccountBlocked(user.status)) {
-      throw new AppError("Account is locked", 403);
+      throw new AppError("Tài khoản đã bị khóa hãy liên hệ admin.", 403);
     }
 
     req.user = {

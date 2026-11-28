@@ -36,6 +36,13 @@ export type GalleryItem = {
   note: string;
 };
 
+export type HomeBannerSlide = {
+  id: string;
+  image: string;
+  sortOrder: number;
+  alt: string;
+};
+
 export type HomeTestimonial = {
   id: string;
   rating: number;
@@ -71,6 +78,7 @@ export type HomeSettings = {
   zalo: string;
   heroImage: string;
   heroVideo: string;
+  bannerSlides: HomeBannerSlide[];
   aboutPoints: AboutPoint[];
   aboutStats: AboutStat[];
   gallery: GalleryItem[];

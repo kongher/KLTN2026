@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { INFO_PAGES, type InfoPageKey } from "../../data/customerHome";
+import { INFO_PAGES, type InfoPageKey } from "../../constants/infoPages";
 
 export default function CustomerInfoPage() {
   const location = useLocation();

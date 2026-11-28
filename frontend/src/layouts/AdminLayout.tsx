@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
+import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../contexts/AuthContext";
 
 type NavItem = { to: string; label: string; end?: boolean };
@@ -19,6 +20,7 @@ const navGroups: NavGroup[] = [
     label: "Nhân sự",
     items: [
       { to: "/admin/staff", label: "Nhân viên" },
+      { to: "/admin/customers", label: "Khách hàng" },
       { to: "/admin/schedules", label: "Lịch làm việc" },
       { to: "/admin/accounts", label: "Tài khoản & Bảo mật" },
     ],
@@ -30,9 +32,13 @@ const navGroups: NavGroup[] = [
       { to: "/admin/services", label: "Dịch vụ" },
       { to: "/admin/categories", label: "Danh mục" },
       { to: "/admin/treatments", label: "Điều trị" },
+      { to: "/admin/reviews", label: "Đánh giá" },
     ],
   },
 ];
+
+const communicationItem: NavItem = { to: "/admin/notifications", label: "Thông báo Email" };
+const couponItem: NavItem = { to: "/admin/coupons", label: "Quản lý mã giảm giá" };
 
 function pathMatches(pathname: string, to: string, end?: boolean) {
   if (end) return pathname === to;
@@ -116,6 +122,20 @@ export default function AdminLayout() {
             {bookingItem.label}
           </NavLink>
           <NavLink
+            to={communicationItem.to}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            {communicationItem.label}
+          </NavLink>
+          <NavLink
+            to={couponItem.to}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            {couponItem.label}
+          </NavLink>
+          <NavLink
             to="/admin/settings"
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) => linkClass(isActive)}
@@ -178,12 +198,15 @@ export default function AdminLayout() {
             Menu
           </button>
           <p className="text-sm text-spa-muted">Xin chào, {user?.name}</p>
-          <Link
-            to="/home"
-            className="rounded-full bg-spa-primary px-4 py-2 text-sm text-white hover:bg-spa-dark"
-          >
-            Xem trang chủ
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationBell inboxBasePath="/admin/inbox" />
+            <Link
+              to="/home"
+              className="rounded-full bg-spa-primary px-4 py-2 text-sm text-white hover:bg-spa-dark"
+            >
+              Xem trang chủ
+            </Link>
+          </div>
         </header>
         <main className="px-4 py-8 lg:px-8">
           <Outlet />

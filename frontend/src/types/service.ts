@@ -13,6 +13,7 @@ export type ServiceCategory = {
 export type SpaService = {
   id: string;
   categoryId: string;
+  code: string;
   name: string;
   description: string | null;
   price: number;

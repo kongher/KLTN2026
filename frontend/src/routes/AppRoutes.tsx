@@ -15,6 +15,19 @@ import CustomerServices from "../pages/customer/Services";
 import HomePage from "../pages/home/HomePage";
 import PublicHomeLayout from "../layouts/PublicHomeLayout";
 import AdminHomeSettings from "../pages/admin/AdminHomeSettings";
+import AdminHomeSettingsHub from "../pages/admin/AdminHomeSettingsHub";
+import AdminBannerSettings from "../pages/admin/AdminBannerSettings";
+import AdminReviews from "../pages/admin/AdminReviews";
+import AdminReviewDetail from "../pages/admin/AdminReviewDetail";
+import AdminNotifications from "../pages/admin/AdminNotifications";
+import AdminCoupons from "../pages/admin/AdminCoupons";
+import AdminCouponCreate from "../pages/admin/AdminCouponCreate";
+import AdminCouponDetail from "../pages/admin/AdminCouponDetail";
+import CustomerMyCoupons from "../pages/customer/CustomerMyCoupons";
+import AdminInbox from "../pages/inbox/AdminInbox";
+import StaffInbox from "../pages/inbox/StaffInbox";
+import CustomerInbox from "../pages/inbox/CustomerInbox";
+import InboxDetailRoute from "../pages/inbox/InboxDetailRoute";
 import ServiceDetail from "../pages/customer/ServiceDetail";
 import BookingWizard from "../pages/customer/BookingWizard";
 import MyBookings from "../pages/customer/MyBookings";
@@ -22,6 +35,7 @@ import BookingDetail from "../pages/customer/BookingDetail";
 import StaffDashboard from "../pages/staff/StaffDashboard";
 import StaffProfile from "../pages/staff/StaffProfile";
 import StaffBookings from "../pages/staff/StaffBookings";
+import StaffReviews from "../pages/staff/StaffReviews";
 import StaffBookingDetail from "../pages/staff/StaffBookingDetail";
 import StaffTreatments from "../pages/staff/StaffTreatments";
 import CustomerTreatments from "../pages/customer/CustomerTreatments";
@@ -30,6 +44,8 @@ import AdminServices from "../pages/admin/Services";
 import ServiceForm from "../pages/admin/ServiceForm";
 import Categories from "../pages/admin/Categories";
 import StaffList from "../pages/admin/StaffList";
+import CustomerList from "../pages/admin/CustomerList";
+import CustomerDetail from "../pages/admin/CustomerDetail";
 import StaffDetail from "../pages/admin/StaffDetail";
 import StaffForm from "../pages/admin/StaffForm";
 import StaffServiceAssignment from "../pages/admin/StaffServiceAssignment";
@@ -126,6 +142,9 @@ export default function AppRoutes() {
         <Route path="bookings" element={<MyBookings />} />
         <Route path="bookings/new" element={<BookingWizard />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
+        <Route path="coupons" element={<CustomerMyCoupons />} />
+        <Route path="inbox" element={<CustomerInbox />} />
+        <Route path="inbox/:id" element={<InboxDetailRoute />} />
         <Route path="treatments" element={<CustomerTreatments />} />
         <Route path="profile" element={<Profile />} />
         <Route path="policy" element={<CustomerInfoPage />} />
@@ -148,7 +167,10 @@ export default function AppRoutes() {
         <Route path="bookings" element={<StaffBookings />} />
         <Route path="bookings/:id" element={<StaffBookingDetail />} />
         <Route path="treatments" element={<StaffTreatments />} />
+        <Route path="reviews" element={<StaffReviews />} />
         <Route path="profile" element={<StaffProfile />} />
+        <Route path="inbox" element={<StaffInbox />} />
+        <Route path="inbox/:id" element={<InboxDetailRoute />} />
       </Route>
 
       <Route
@@ -167,6 +189,8 @@ export default function AppRoutes() {
         <Route path="services/:id/edit" element={<ServiceForm />} />
         <Route path="categories" element={<Categories />} />
         <Route path="staff" element={<StaffList />} />
+        <Route path="customers" element={<CustomerList />} />
+        <Route path="customers/:id" element={<CustomerDetail />} />
         <Route path="staff/new" element={<StaffForm />} />
         <Route path="staff/:id" element={<StaffDetail />} />
         <Route path="staff/:id/edit" element={<StaffForm />} />
@@ -179,7 +203,17 @@ export default function AppRoutes() {
         <Route path="bookings" element={<AdminBookingList />} />
         <Route path="bookings/:id" element={<AdminBookingDetail />} />
         <Route path="treatments" element={<AdminTreatments />} />
-        <Route path="settings" element={<AdminHomeSettings />} />
+        <Route path="reviews" element={<AdminReviews />} />
+        <Route path="reviews/:id" element={<AdminReviewDetail />} />
+        <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="coupons" element={<AdminCoupons />} />
+        <Route path="coupons/new" element={<AdminCouponCreate />} />
+        <Route path="coupons/:id" element={<AdminCouponDetail />} />
+        <Route path="inbox" element={<AdminInbox />} />
+        <Route path="inbox/:id" element={<InboxDetailRoute />} />
+        <Route path="settings" element={<AdminHomeSettingsHub />} />
+        <Route path="settings/content" element={<AdminHomeSettings />} />
+        <Route path="settings/banner" element={<AdminBannerSettings />} />
         <Route path="profile" element={<Profile />} />
       </Route>
 

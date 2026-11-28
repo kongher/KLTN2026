@@ -26,6 +26,30 @@ const register = validate((req) => {
   return errors;
 });
 
+const verifyEmailOtp = validate((req) => {
+  const errors = [];
+  const { email, otp } = req.body || {};
+
+  if (!isEmail(email)) {
+    errors.push("A valid email is required");
+  }
+
+  const code = String(otp ?? "").trim();
+  if (!/^\d{6}$/.test(code)) {
+    errors.push("A 6-digit verification code is required");
+  }
+
+  return errors;
+});
+
+const resendEmailOtp = validate((req) => {
+  const errors = [];
+  if (!isEmail(req.body?.email)) {
+    errors.push("A valid email is required");
+  }
+  return errors;
+});
+
 const login = validate((req) => {
   const errors = [];
   const { email, phone, identifier, password } = req.body || {};
@@ -90,6 +114,8 @@ const changePassword = validate((req) => {
 
 module.exports = {
   register,
+  verifyEmailOtp,
+  resendEmailOtp,
   login,
   forgotPassword,
   resetPassword,

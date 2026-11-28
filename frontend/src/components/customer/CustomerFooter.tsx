@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { phoneHref } from "../../data/customerHome";
+import { phoneHref } from "../../utils/homeSettings";
 import { useAuth } from "../../contexts/AuthContext";
 import { useHomeContent } from "../../contexts/HomeContentContext";
 
@@ -39,20 +39,28 @@ export default function CustomerFooter() {
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-spa-accent">{settings.name}</p>
           <h2 className="mt-2 text-xl font-semibold">Thông tin liên hệ</h2>
-          <p className="mt-4 text-sm leading-6 text-white/80">{settings.address}</p>
-          <p className="mt-3 text-sm">
-            Hotline:{" "}
-            <a href={phoneHref(settings.phone)} className="text-spa-accent hover:underline">
-              {settings.phone}
-            </a>
-          </p>
-          <p className="mt-1 text-sm text-white/80">Email: {settings.email}</p>
+          {settings.address ? (
+            <p className="mt-4 text-sm leading-6 text-white/80">{settings.address}</p>
+          ) : null}
+          {settings.phone ? (
+            <p className="mt-3 text-sm">
+              Hotline:{" "}
+              <a href={phoneHref(settings.phone)} className="text-spa-accent hover:underline">
+                {settings.phone}
+              </a>
+            </p>
+          ) : null}
+          {settings.email ? <p className="mt-1 text-sm text-white/80">Email: {settings.email}</p> : null}
         </div>
 
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-spa-accent">Giờ mở cửa</h3>
-          <p className="mt-3 text-sm text-white/85">{settings.hoursWeekday}</p>
-          <p className="mt-1 text-sm text-white/85">{settings.hoursWeekend}</p>
+          {settings.hoursWeekday ? (
+            <p className="mt-3 text-sm text-white/85">{settings.hoursWeekday}</p>
+          ) : null}
+          {settings.hoursWeekend ? (
+            <p className="mt-1 text-sm text-white/85">{settings.hoursWeekend}</p>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-2">
             {socials.map((social) => (
               <a
@@ -81,18 +89,20 @@ export default function CustomerFooter() {
           </ul>
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-spa-accent">Bản đồ</h3>
-          <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
-            <iframe
-              title={`Bản đồ ${settings.name}`}
-              src={settings.mapSrc}
-              className="h-48 w-full grayscale-[0.2]"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+        {settings.mapSrc ? (
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-spa-accent">Bản đồ</h3>
+            <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
+              <iframe
+                title={`Bản đồ ${settings.name}`}
+                src={settings.mapSrc}
+                className="h-48 w-full grayscale-[0.2]"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
       <div className="border-t border-white/10 py-4 text-center text-xs text-white/60">
         © {new Date().getFullYear()} {settings.name}. Không gian thư giãn dành riêng cho bạn.

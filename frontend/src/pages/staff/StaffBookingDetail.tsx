@@ -9,7 +9,9 @@ import {
   fetchStaffBooking,
   rejectStaffBooking,
 } from "../../services/bookingService";
+import { fetchReview } from "../../services/reviewService";
 import type { Booking, BookingStatus } from "../../types/booking";
+import type { ServiceReview } from "../../types/review";
 import { formatDuration, formatPrice } from "../../utils/format";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { BOOKING_STATUS_LABEL } from "../../utils/statusLabels";
@@ -66,6 +68,7 @@ export default function StaffBookingDetail() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookingAction | null>(null);
+  const [review, setReview] = useState<ServiceReview | null>(null);
 
   async function load() {
     if (!id) return;
@@ -86,6 +89,16 @@ export default function StaffBookingDetail() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (!booking?.hasReview || !booking.reviewId) {
+      setReview(null);
+      return;
+    }
+    void fetchReview(booking.reviewId)
+      .then(setReview)
+      .catch(() => setReview(null));
+  }, [booking?.hasReview, booking?.reviewId]);
 
   async function runPendingAction() {
     if (!booking || !pendingAction) return;
@@ -159,6 +172,10 @@ export default function StaffBookingDetail() {
         </div>
 
         <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-spa-muted">Mã lịch</dt>
+            <dd className="mt-1 font-mono text-sm text-spa-dark">{booking.bookingCode}</dd>
+          </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-spa-muted">Khách hàng</dt>
             <dd className="mt-1 text-spa-dark">{booking.customer?.name || "—"}</dd>
@@ -247,6 +264,23 @@ export default function StaffBookingDetail() {
           ) : null}
         </div>
       </div>
+
+      {review ? (
+        <div className="rounded-2xl border border-[#C9A46C]/25 bg-[#C9A46C]/5 p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.25em] text-spa-accent">Đánh giá khách hàng</p>
+          <p className="mt-2 text-lg font-medium text-spa-dark">
+            {review.rating}/5 {"⭐".repeat(review.rating)}
+          </p>
+          {review.comment ? (
+            <p className="mt-3 text-sm text-spa-dark">{review.comment}</p>
+          ) : (
+            <p className="mt-3 text-sm text-spa-muted">Không có nhận xét.</p>
+          )}
+          <p className="mt-2 text-xs text-spa-muted">
+            {new Date(review.createdAt).toLocaleString("vi-VN")}
+          </p>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(pendingAction)}

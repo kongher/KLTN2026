@@ -2,10 +2,40 @@ const prisma = require("../config/prisma");
 const AppError = require("../utils/appError");
 const { parsePagination, buildPagination, parseSort } = require("../utils/query");
 
+const SERVICE_CODE_PATTERN = /^[A-Za-z0-9_-]{2,50}$/;
+
+function normalizeServiceCode(code) {
+  if (code === undefined || code === null || String(code).trim() === "") {
+    throw new AppError("Service code is required", 400);
+  }
+  const trimmed = String(code).trim();
+  if (!SERVICE_CODE_PATTERN.test(trimmed)) {
+    throw new AppError(
+      "Service code must be 2-50 characters (letters, numbers, underscore, hyphen)",
+      400
+    );
+  }
+  return trimmed.toUpperCase();
+}
+
+async function assertServiceCodeAvailable(codeUpper, excludeId) {
+  const conflict = await prisma.service.findFirst({
+    where: {
+      code: codeUpper,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (conflict) {
+    throw new AppError("Service code already exists", 409);
+  }
+}
+
 function serializeService(service) {
   return {
     id: service.id,
     categoryId: service.categoryId,
+    code: service.code,
     name: service.name,
     description: service.description,
     price: Number(service.price),
@@ -74,6 +104,7 @@ async function listServices(query, role) {
     where.OR = [
       { name: { contains: search } },
       { description: { contains: search } },
+      { code: { contains: search.toUpperCase() } },
     ];
   }
 
@@ -129,19 +160,30 @@ async function getServiceById(id, role) {
 
 async function createService(payload) {
   await ensureCategory(payload.categoryId);
+  const code = normalizeServiceCode(payload.code);
+  await assertServiceCodeAvailable(code);
 
-  const service = await prisma.service.create({
-    data: {
-      categoryId: payload.categoryId,
-      name: payload.name.trim(),
-      description: payload.description?.trim() || null,
-      price: payload.price,
-      duration: Number(payload.duration),
-      image: payload.image?.trim() || null,
-      status: payload.status || "ACTIVE",
-    },
-    include: serviceInclude,
-  });
+  let service;
+  try {
+    service = await prisma.service.create({
+      data: {
+        categoryId: payload.categoryId,
+        code,
+        name: payload.name.trim(),
+        description: payload.description?.trim() || null,
+        price: payload.price,
+        duration: Number(payload.duration),
+        image: payload.image?.trim() || null,
+        status: payload.status || "ACTIVE",
+      },
+      include: serviceInclude,
+    });
+  } catch (err) {
+    if (err?.code === "P2002") {
+      throw new AppError("Service code already exists", 409);
+    }
+    throw err;
+  }
 
   return serializeService(service);
 }
@@ -166,6 +208,11 @@ async function updateService(id, payload) {
   if (payload.categoryId !== undefined) data.categoryId = payload.categoryId;
   if (payload.image !== undefined) data.image = payload.image === "" ? null : payload.image.trim();
   if (payload.status !== undefined) data.status = payload.status;
+  if (payload.code !== undefined) {
+    const code = normalizeServiceCode(payload.code);
+    await assertServiceCodeAvailable(code, id);
+    data.code = code;
+  }
 
   const service = await prisma.service.update({
     where: { id },

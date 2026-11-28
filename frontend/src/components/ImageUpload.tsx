@@ -8,6 +8,10 @@ type ImageUploadProps = {
   onChange: (url: string) => void;
   folder?: string;
   helperText?: string;
+  /** Chiều cao khung xem trước (Tailwind class, vd. h-52) */
+  previewHeightClass?: string;
+  /** cover = lấp đầy khung; contain = hiện trọn ảnh */
+  previewFit?: "cover" | "contain";
 };
 
 export default function ImageUpload({
@@ -16,7 +20,10 @@ export default function ImageUpload({
   onChange,
   folder = "spa-management",
   helperText = "JPG, PNG, WEBP · tối đa 5MB",
+  previewHeightClass = "h-40",
+  previewFit = "cover",
 }: ImageUploadProps) {
+  const fitClass = previewFit === "contain" ? "object-contain" : "object-cover";
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -51,13 +58,17 @@ export default function ImageUpload({
   return (
     <div className="text-sm">
       <p className="text-spa-muted">{label}</p>
-      <div className="mt-2 overflow-hidden rounded-xl border border-black/10 bg-spa-bg">
+      <div
+        className={`mt-2 flex items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-spa-bg ${previewHeightClass}`}
+      >
         {value ? (
-          <img src={value} alt={label} className="h-40 w-full object-cover" />
+          <img
+            src={value}
+            alt={label}
+            className={`max-h-full w-full ${fitClass}`}
+          />
         ) : (
-          <div className="flex h-40 items-center justify-center text-spa-muted">
-            Chưa có ảnh
-          </div>
+          <span className="text-spa-muted">Chưa có ảnh</span>
         )}
       </div>
 

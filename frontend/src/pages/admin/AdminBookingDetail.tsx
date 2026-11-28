@@ -27,12 +27,13 @@ export default function AdminBookingDetail() {
 
   useEffect(() => {
     if (!id) return;
+    const bookingId = id;
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       try {
-        const data = await fetchAdminBooking(id);
+        const data = await fetchAdminBooking(bookingId);
         if (!cancelled) {
           setBooking(data);
           setError("");
@@ -98,6 +99,10 @@ export default function AdminBookingDetail() {
         </div>
 
         <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-spa-muted">Mã lịch</dt>
+            <dd className="mt-1 font-mono text-sm text-spa-dark">{booking.bookingCode}</dd>
+          </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-spa-muted">Ngày</dt>
             <dd className="mt-1 text-spa-dark">{booking.bookingDate}</dd>

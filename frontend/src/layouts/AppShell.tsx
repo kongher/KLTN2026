@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../contexts/AuthContext";
 import type { UserRole } from "../types/auth";
 
@@ -20,6 +21,7 @@ function linksFor(role: UserRole, basePath: string) {
     items.push({ to: `${basePath}/schedule`, label: "Lịch làm việc" });
     items.push({ to: `${basePath}/bookings`, label: "Lịch hẹn" });
     items.push({ to: `${basePath}/treatments`, label: "Điều trị" });
+    items.push({ to: `${basePath}/reviews`, label: "Đánh giá" });
     items.push({ to: `${basePath}/profile`, label: "Hồ sơ của tôi" });
   } else {
     items.push({ to: `${basePath}/profile`, label: "Hồ sơ" });
@@ -65,6 +67,7 @@ export default function AppShell({ role, basePath }: AppShellProps) {
                 {link.label}
               </NavLink>
             ))}
+            <NotificationBell inboxBasePath={`${basePath}/inbox`} />
             <button
               type="button"
               onClick={() => void handleLogout()}

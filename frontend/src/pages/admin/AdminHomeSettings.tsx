@@ -2,15 +2,15 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import ImageUpload from "../../components/ImageUpload";
 import { useHomeContent } from "../../contexts/HomeContentContext";
-import { DEFAULT_HOME_SETTINGS, mergeHomeSettings } from "../../data/customerHome";
+import { createHomeLayoutTemplate, normalizeHomeSettings } from "../../utils/homeSettings";
 import { updateHomeSettings } from "../../services/homeService";
-import type { GalleryItem, HomePromotion, HomeSettings, HomeTestimonial } from "../../types/home";
+import type { GalleryItem, HomeSettings } from "../../types/home";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 
 const inputClass = "mt-1 w-full rounded-xl border border-black/10 bg-spa-white px-3 py-2";
 
 function cloneSettings(value: HomeSettings): HomeSettings {
-  return JSON.parse(JSON.stringify(mergeHomeSettings(value))) as HomeSettings;
+  return JSON.parse(JSON.stringify(normalizeHomeSettings(value))) as HomeSettings;
 }
 
 function Field({
@@ -63,11 +63,15 @@ export default function AdminHomeSettings() {
     <form onSubmit={(event) => void handleSubmit(event)} className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl bg-spa-white p-6 shadow-sm">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-spa-accent">Cài đặt</p>
+          <Link to="/admin/settings" className="text-sm text-spa-primary hover:underline">
+            ← Cài đặt trang chủ
+          </Link>
+          <p className="mt-3 text-xs uppercase tracking-[0.25em] text-spa-accent">Cài đặt</p>
           <h2 className="mt-1 text-2xl font-semibold text-spa-dark">Nội dung trang chủ</h2>
           <p className="mt-2 max-w-2xl text-sm text-spa-muted">
-            Thay đổi thông tin, ảnh hero, gallery, đánh giá và ưu đãi. Bấm Xem trang chủ để kiểm tra
-            giao diện khách mà không cần đăng nhập tài khoản khác.
+            Tải ảnh và nhập nội dung hiển thị trên trang chủ (dữ liệu lấy từ API sau khi lưu). Dùng
+            &quot;Tạo khung bố cục&quot; nếu cần khung trống (3 thế mạnh, 4 con số), rồi upload và
+            điền thông tin.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -139,7 +143,15 @@ export default function AdminHomeSettings() {
       </section>
 
       <section className="rounded-2xl bg-spa-white p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-spa-dark">Hero / Phần mở đầu</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-lg font-semibold text-spa-dark">Hero / Phần mở đầu</h3>
+          <Link to="/admin/settings/banner" className="text-sm text-spa-primary hover:underline">
+            Quản lý slideshow Banner →
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-spa-muted">
+          Nếu đã cấu hình ảnh trong Banner, slideshow sẽ thay ảnh hero đơn bên dưới trên trang chủ.
+        </p>
         <div className="mt-4 grid gap-4">
           <Field label="Khẩu hiệu">
             <input className={inputClass} value={form.tagline} onChange={(e) => patch("tagline", e.target.value)} />
@@ -187,6 +199,21 @@ export default function AdminHomeSettings() {
             />
           </Field>
         </div>
+        {form.aboutPoints.length === 0 ? (
+          <button
+            type="button"
+            onClick={() =>
+              patch("aboutPoints", [
+                { title: "", text: "" },
+                { title: "", text: "" },
+                { title: "", text: "" },
+              ])
+            }
+            className="mt-4 text-sm text-spa-primary hover:underline"
+          >
+            Thêm 3 ô thế mạnh
+          </button>
+        ) : null}
         <div className="mt-6 space-y-4">
           {form.aboutPoints.map((point, index) => (
             <div key={index} className="grid gap-3 rounded-xl border border-black/5 p-4 md:grid-cols-2">
@@ -215,6 +242,22 @@ export default function AdminHomeSettings() {
             </div>
           ))}
         </div>
+        {form.aboutStats.length === 0 ? (
+          <button
+            type="button"
+            onClick={() =>
+              patch("aboutStats", [
+                { value: "", label: "" },
+                { value: "", label: "" },
+                { value: "", label: "" },
+                { value: "", label: "" },
+              ])
+            }
+            className="mt-4 text-sm text-spa-primary hover:underline"
+          >
+            Thêm 4 chỉ số
+          </button>
+        ) : null}
         <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {form.aboutStats.map((stat, index) => (
             <div key={index} className="rounded-xl border border-black/5 p-4">
@@ -248,7 +291,18 @@ export default function AdminHomeSettings() {
       <section className="rounded-2xl bg-spa-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-spa-dark">Gallery không gian</h3>
-          {form.gallery.length < 8 ? (
+          {form.gallery.length === 0 ? (
+            <button
+              type="button"
+              onClick={() =>
+                patch("gallery", [{ src: "", alt: "", caption: "", note: "" } satisfies GalleryItem])
+              }
+              className="text-sm text-spa-primary hover:underline"
+            >
+              Thêm ảnh đầu tiên
+            </button>
+          ) : null}
+          {form.gallery.length > 0 && form.gallery.length < 8 ? (
             <button
               type="button"
               onClick={() =>
@@ -300,216 +354,13 @@ export default function AdminHomeSettings() {
                   />
                 </Field>
               </div>
-              {form.gallery.length > 1 ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm text-rose-700 hover:underline"
-                  onClick={() => patch("gallery", form.gallery.filter((_, i) => i !== index))}
-                >
-                  Xóa ảnh này
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-2xl bg-spa-white p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-spa-dark">Đánh giá hiển thị trên trang chủ</h3>
-          {form.testimonials.length < 8 ? (
-            <button
-              type="button"
-              onClick={() =>
-                patch("testimonials", [
-                  ...form.testimonials,
-                  {
-                    id: `new-${Date.now()}`,
-                    rating: 5,
-                    comment: "",
-                    customerName: "",
-                    customerAvatar: "",
-                    serviceName: "",
-                  } satisfies HomeTestimonial,
-                ])
-              }
-              className="text-sm text-spa-primary hover:underline"
-            >
-              Thêm đánh giá
-            </button>
-          ) : null}
-        </div>
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
-          {form.testimonials.map((item, index) => (
-            <div key={item.id} className="rounded-xl border border-black/5 p-4">
-              <ImageUpload
-                label="Ảnh khách"
-                value={item.customerAvatar}
-                folder="spa-home"
-                onChange={(url) => {
-                  const next = [...form.testimonials];
-                  next[index] = { ...item, customerAvatar: url };
-                  patch("testimonials", next);
-                }}
-              />
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <Field label="Tên khách">
-                  <input
-                    className={inputClass}
-                    value={item.customerName}
-                    onChange={(e) => {
-                      const next = [...form.testimonials];
-                      next[index] = { ...item, customerName: e.target.value };
-                      patch("testimonials", next);
-                    }}
-                  />
-                </Field>
-                <Field label="Dịch vụ">
-                  <input
-                    className={inputClass}
-                    value={item.serviceName}
-                    onChange={(e) => {
-                      const next = [...form.testimonials];
-                      next[index] = { ...item, serviceName: e.target.value };
-                      patch("testimonials", next);
-                    }}
-                  />
-                </Field>
-                <Field label="Số sao (1-5)">
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    className={inputClass}
-                    value={item.rating}
-                    onChange={(e) => {
-                      const next = [...form.testimonials];
-                      next[index] = { ...item, rating: Number(e.target.value) || 5 };
-                      patch("testimonials", next);
-                    }}
-                  />
-                </Field>
-              </div>
-              <Field label="Nhận xét">
-                <textarea
-                  rows={3}
-                  className={inputClass}
-                  value={item.comment}
-                  onChange={(e) => {
-                    const next = [...form.testimonials];
-                    next[index] = { ...item, comment: e.target.value };
-                    patch("testimonials", next);
-                  }}
-                />
-              </Field>
-              {form.testimonials.length > 1 ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm text-rose-700 hover:underline"
-                  onClick={() =>
-                    patch(
-                      "testimonials",
-                      form.testimonials.filter((_, i) => i !== index)
-                    )
-                  }
-                >
-                  Xóa đánh giá
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-2xl bg-spa-white p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-spa-dark">Ưu đãi / tin mới</h3>
-          {form.promotions.length < 8 ? (
-            <button
-              type="button"
-              onClick={() =>
-                patch("promotions", [
-                  ...form.promotions,
-                  {
-                    id: `promo-${Date.now()}`,
-                    badge: "Ưu đãi",
-                    title: "",
-                    description: "",
-                    code: "",
-                    highlight: "",
-                  } satisfies HomePromotion,
-                ])
-              }
-              className="text-sm text-spa-primary hover:underline"
-            >
-              Thêm ưu đãi
-            </button>
-          ) : null}
-        </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {form.promotions.map((item, index) => (
-            <div key={item.id} className="rounded-xl border border-black/5 p-4">
-              <div className="grid gap-3">
-                <Field label="Nhãn">
-                  <input
-                    className={inputClass}
-                    value={item.badge}
-                    onChange={(e) => {
-                      const next = [...form.promotions];
-                      next[index] = { ...item, badge: e.target.value };
-                      patch("promotions", next);
-                    }}
-                  />
-                </Field>
-                <Field label="Tiêu đề">
-                  <input
-                    className={inputClass}
-                    value={item.title}
-                    onChange={(e) => {
-                      const next = [...form.promotions];
-                      next[index] = { ...item, title: e.target.value };
-                      patch("promotions", next);
-                    }}
-                  />
-                </Field>
-                <Field label="Mô tả">
-                  <textarea
-                    rows={3}
-                    className={inputClass}
-                    value={item.description}
-                    onChange={(e) => {
-                      const next = [...form.promotions];
-                      next[index] = { ...item, description: e.target.value };
-                      patch("promotions", next);
-                    }}
-                  />
-                </Field>
-                <Field label="Mã (nếu có)">
-                  <input
-                    className={inputClass}
-                    value={item.code}
-                    onChange={(e) => {
-                      const next = [...form.promotions];
-                      next[index] = { ...item, code: e.target.value };
-                      patch("promotions", next);
-                    }}
-                  />
-                </Field>
-              </div>
-              {form.promotions.length > 1 ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm text-rose-700 hover:underline"
-                  onClick={() =>
-                    patch(
-                      "promotions",
-                      form.promotions.filter((_, i) => i !== index)
-                    )
-                  }
-                >
-                  Xóa ưu đãi
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className="mt-3 text-sm text-rose-700 hover:underline"
+                onClick={() => patch("gallery", form.gallery.filter((_, i) => i !== index))}
+              >
+                Xóa ảnh này
+              </button>
             </div>
           ))}
         </div>
@@ -518,10 +369,18 @@ export default function AdminHomeSettings() {
       <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          onClick={() => setForm(cloneSettings(DEFAULT_HOME_SETTINGS))}
+          onClick={() => {
+            if (
+              window.confirm(
+                "Tạo khung bố cục trống trong form? Bạn vẫn cần bấm Lưu để áp dụng lên trang chủ."
+              )
+            ) {
+              setForm(cloneSettings(createHomeLayoutTemplate()));
+            }
+          }}
           className="rounded-full border px-5 py-2.5"
         >
-          Khôi phục mẫu mặc định
+          Tạo khung bố cục (trống)
         </button>
         <button
           type="submit"

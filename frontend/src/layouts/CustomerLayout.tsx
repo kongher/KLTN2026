@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import NotificationBell from "../components/NotificationBell";
 import CustomerFooter from "../components/customer/CustomerFooter";
 import { useAuth } from "../contexts/AuthContext";
 import { useHomeContent } from "../contexts/HomeContentContext";
@@ -7,6 +8,7 @@ const NAV_LINKS = [
   { to: "/customer/dashboard", label: "Trang chủ", end: true },
   { to: "/customer/services", label: "Dịch vụ" },
   { to: "/customer/bookings", label: "Lịch hẹn" },
+  { to: "/customer/coupons", label: "Ưu đãi" },
   { to: "/customer/treatments", label: "Điều trị" },
   { to: "/customer/profile", label: "Hồ sơ" },
 ];
@@ -48,6 +50,7 @@ export default function CustomerLayout() {
                 {link.label}
               </NavLink>
             ))}
+            <NotificationBell inboxBasePath="/customer/inbox" />
             <button
               type="button"
               onClick={() => void handleLogout()}

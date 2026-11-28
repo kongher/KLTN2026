@@ -1,6 +1,7 @@
 require("dotenv").config();
 const bcrypt = require("bcrypt");
 const prisma = require("../src/config/prisma");
+const { allocateBookingCode } = require("../src/services/bookingCodeService");
 
 const DEMO_PASSWORD = "Demo@123456";
 const SALT_ROUNDS = 10;
@@ -8,6 +9,13 @@ const SALT_ROUNDS = 10;
 function dateOnly(offsetDays = 0) {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays);
+}
+
+async function createSeedBooking(data) {
+  return prisma.$transaction(async (tx) => {
+    const bookingCode = await allocateBookingCode(tx);
+    return tx.booking.create({ data: { ...data, bookingCode } });
+  });
 }
 
 function addMinutes(time, minutes) {
@@ -23,6 +31,7 @@ async function clearDatabase() {
   await prisma.review.deleteMany();
   await prisma.treatmentRecord.deleteMany();
   await prisma.booking.deleteMany();
+  await prisma.bookingDailySequence.deleteMany();
   await prisma.staffSchedule.deleteMany();
   await prisma.staffService.deleteMany();
   await prisma.voucher.deleteMany();
@@ -35,11 +44,11 @@ async function clearDatabase() {
 }
 
 async function ensureHomeSettings() {
-  const { DEFAULT_HOME_SETTINGS } = require("../src/data/defaultHomeSettings");
+  const { createHomeLayoutTemplate } = require("../src/data/defaultHomeSettings");
   await prisma.siteSetting.upsert({
     where: { id: "home" },
     update: {},
-    create: { id: "home", data: DEFAULT_HOME_SETTINGS },
+    create: { id: "home", data: createHomeLayoutTemplate() },
   });
 }
 
@@ -227,6 +236,7 @@ async function main() {
       prisma.service.create({
         data: {
           categoryId: facialCategory.id,
+          code: "FACIAL-BASIC",
           name: "Facial cơ bản",
           description: "Làm sạch sâu, tẩy tế bào chết và dưỡng ẩm da mặt.",
           price: "350000.00",
@@ -238,6 +248,7 @@ async function main() {
       prisma.service.create({
         data: {
           categoryId: facialCategory.id,
+          code: "FACIAL-ACNE",
           name: "Facial trị mụn",
           description: "Điều trị mụn, giảm viêm và phục hồi da tổn thương.",
           price: "450000.00",
@@ -249,6 +260,7 @@ async function main() {
       prisma.service.create({
         data: {
           categoryId: massageCategory.id,
+          code: "MASSAGE-BODY",
           name: "Massage body",
           description: "Massage toàn thân giúp thư giãn và giảm đau cơ.",
           price: "500000.00",
@@ -260,6 +272,7 @@ async function main() {
       prisma.service.create({
         data: {
           categoryId: massageCategory.id,
+          code: "MASSAGE-HOTSTONE",
           name: "Massage đá nóng",
           description: "Massage kết hợp đá nóng, tăng tuần hoàn máu.",
           price: "650000.00",
@@ -271,6 +284,7 @@ async function main() {
       prisma.service.create({
         data: {
           categoryId: bodyCategory.id,
+          code: "BODY-SCRUB",
           name: "Tẩy tế bào chết body",
           description: "Làm sạch da toàn thân, giúp da mịn và sáng hơn.",
           price: "400000.00",
@@ -334,6 +348,7 @@ async function main() {
     prisma.voucher.create({
       data: {
         code: "WELCOME10",
+        name: "Chào mừng 10%",
         type: "PERCENTAGE",
         value: "10.00",
         startDate: dateOnly(-7),
@@ -341,11 +356,13 @@ async function main() {
         usageLimit: 100,
         usedCount: 1,
         status: "ACTIVE",
+        isPersonalized: false,
       },
     }),
     prisma.voucher.create({
       data: {
         code: "SPA50K",
+        name: "Giảm 50.000đ",
         type: "FIXED",
         value: "50000.00",
         startDate: dateOnly(-7),
@@ -353,11 +370,13 @@ async function main() {
         usageLimit: 50,
         usedCount: 0,
         status: "ACTIVE",
+        isPersonalized: false,
       },
     }),
     prisma.voucher.create({
       data: {
         code: "SUMMER20",
+        name: "Hè 20%",
         type: "PERCENTAGE",
         value: "20.00",
         startDate: dateOnly(-30),
@@ -365,11 +384,12 @@ async function main() {
         usageLimit: 20,
         usedCount: 20,
         status: "EXPIRED",
+        isPersonalized: false,
       },
     }),
   ]);
 
-  const pendingBooking = await prisma.booking.create({
+  const pendingBooking = await createSeedBooking({
     data: {
       customerId: customers[0].id,
       staffId: staffLan.id,
@@ -384,7 +404,7 @@ async function main() {
     },
   });
 
-  const confirmedBooking = await prisma.booking.create({
+  const confirmedBooking = await createSeedBooking({
     data: {
       customerId: customers[1].id,
       staffId: staffMinh.id,
@@ -398,7 +418,7 @@ async function main() {
     },
   });
 
-  const completedBooking1 = await prisma.booking.create({
+  const completedBooking1 = await createSeedBooking({
     data: {
       customerId: customers[2].id,
       staffId: staffHuong.id,
@@ -412,7 +432,7 @@ async function main() {
     },
   });
 
-  const completedBooking2 = await prisma.booking.create({
+  const completedBooking2 = await createSeedBooking({
     data: {
       customerId: customers[4].id,
       staffId: staffLan.id,
@@ -426,7 +446,7 @@ async function main() {
     },
   });
 
-  const cancelledBooking = await prisma.booking.create({
+  const cancelledBooking = await createSeedBooking({
     data: {
       customerId: customers[3].id,
       staffId: staffLan.id,
@@ -440,7 +460,7 @@ async function main() {
     },
   });
 
-  const rejectedBooking = await prisma.booking.create({
+  const rejectedBooking = await createSeedBooking({
     data: {
       customerId: customers[0].id,
       staffId: staffMinh.id,

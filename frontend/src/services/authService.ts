@@ -6,6 +6,12 @@ type AuthPayload = {
   token: string;
 };
 
+export type RegisterOtpPending = {
+  email: string;
+  expiresAt: string;
+  resendAvailableAt: string;
+};
+
 export async function loginRequest(identifier: string, password: string) {
   const { data } = await api.post<ApiSuccess<AuthPayload>>("/auth/login", {
     identifier,
@@ -21,8 +27,20 @@ export async function registerRequest(payload: {
   phone: string;
   password: string;
 }) {
-  const { data } = await api.post<ApiSuccess<AuthPayload>>("/auth/register", payload);
+  const { data } = await api.post<ApiSuccess<RegisterOtpPending>>("/auth/register", payload);
+  return data.data;
+}
+
+export async function verifyEmailOtpRequest(payload: { email: string; otp: string }) {
+  const { data } = await api.post<ApiSuccess<AuthPayload>>("/auth/verify-email-otp", payload);
   setStoredToken(data.data.token);
+  return data.data;
+}
+
+export async function resendEmailOtpRequest(email: string) {
+  const { data } = await api.post<ApiSuccess<RegisterOtpPending>>("/auth/resend-email-otp", {
+    email,
+  });
   return data.data;
 }
 
@@ -70,6 +88,7 @@ export async function updateProfileRequest(payload: {
   name?: string;
   phone?: string;
   avatar?: string;
+  marketingEmailOptIn?: boolean;
 }) {
   const { data } = await api.put<ApiSuccess<ProfileUser>>("/users/profile", payload);
   return data.data;

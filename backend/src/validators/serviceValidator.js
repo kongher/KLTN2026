@@ -9,9 +9,23 @@ const {
 
 const STATUSES = new Set(["ACTIVE", "INACTIVE"]);
 
+const CODE_PATTERN = /^[A-Za-z0-9_-]{2,50}$/;
+
 function validateServiceBody(body, { partial = false } = {}) {
   const errors = [];
-  const { name, description, price, duration, categoryId, image, status } = body || {};
+  const { code, name, description, price, duration, categoryId, image, status } = body || {};
+
+  if (!partial || code !== undefined) {
+    if (!partial) {
+      if (!isNonEmptyString(code) || !CODE_PATTERN.test(String(code).trim())) {
+        errors.push("Service code is required (2-50 chars: letters, numbers, _, -)");
+      }
+    } else if (code !== undefined) {
+      if (!isNonEmptyString(code) || !CODE_PATTERN.test(String(code).trim())) {
+        errors.push("Invalid service code");
+      }
+    }
+  }
 
   if (!partial || name !== undefined) {
     if (!isNonEmptyString(name) || name.trim().length < 2) {
@@ -60,8 +74,9 @@ const update = validate((req) => {
     errors.push("Invalid service id");
   }
   errors.push(...validateServiceBody(req.body, { partial: true }));
-  const { name, description, price, duration, categoryId, image, status } = req.body || {};
+  const { code, name, description, price, duration, categoryId, image, status } = req.body || {};
   if (
+    code === undefined &&
     name === undefined &&
     description === undefined &&
     price === undefined &&

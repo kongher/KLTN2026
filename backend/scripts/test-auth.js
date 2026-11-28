@@ -1,6 +1,7 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const prisma = require("../src/config/prisma");
+const { hashOtpCode } = require("../src/services/emailOtpService");
 
 const BASE = `http://127.0.0.1:${process.env.PORT || 5000}`;
 const suffix = Date.now().toString().slice(-6);
@@ -31,6 +32,22 @@ async function request(path, { method = "GET", token, body } = {}) {
   return { status: res.status, json };
 }
 
+async function resolveOtpForEmail(email) {
+  const record = await prisma.registrationOtp.findFirst({
+    where: { email: email.trim().toLowerCase(), usedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!record) return null;
+
+  for (let value = 100000; value <= 999999; value += 1) {
+    const code = String(value);
+    if (hashOtpCode(code) === record.otpHash) {
+      return code;
+    }
+  }
+  return null;
+}
+
 async function main() {
   const registerBody = {
     name: "Test Customer",
@@ -39,24 +56,66 @@ async function main() {
     password: "Testpass123",
   };
 
-  // 1. Register
   const registered = await request("/api/auth/register", {
     method: "POST",
     body: registerBody,
   });
+
   if (
-    registered.status === 201 &&
+    registered.status === 200 &&
     registered.json.success &&
-    registered.json.data?.token &&
-    !registered.json.data?.user?.password &&
-    registered.json.data?.user?.role === "CUSTOMER"
+    registered.json.data?.expiresAt &&
+  !registered.json.data?.token
   ) {
-    pass("1. Customer register");
+    pass("1. Customer register sends OTP");
   } else {
-    fail("1. Customer register", JSON.stringify(registered.json));
+    fail("1. Customer register sends OTP", JSON.stringify(registered.json));
   }
 
-  let customerToken = registered.json.data?.token;
+  const otp = await resolveOtpForEmail(registerBody.email);
+  if (!otp) {
+    fail("1b. Resolve OTP for verification", "No pending registration OTP");
+  }
+
+  const beforeUser = await prisma.user.findUnique({
+    where: { email: registerBody.email },
+  });
+  if (!beforeUser) {
+    pass("1c. User not created before OTP verify");
+  } else {
+    fail("1c. User not created before OTP verify", "User already exists");
+  }
+
+  const verifyBad = await request("/api/auth/verify-email-otp", {
+    method: "POST",
+    body: { email: registerBody.email, otp: "000000" },
+  });
+  if (verifyBad.status === 400 && verifyBad.json.success === false) {
+    pass("1d. Wrong OTP rejected");
+  } else {
+    fail("1d. Wrong OTP rejected", JSON.stringify(verifyBad.json));
+  }
+
+  const verified =
+    otp &&
+    (await request("/api/auth/verify-email-otp", {
+      method: "POST",
+      body: { email: registerBody.email, otp },
+    }));
+
+  let customerToken = verified?.json.data?.token;
+
+  if (
+    otp &&
+    verified.status === 201 &&
+    verified.json.success &&
+    customerToken &&
+    verified.json.data?.user?.role === "CUSTOMER"
+  ) {
+    pass("1e. OTP verify completes register");
+  } else {
+    fail("1e. OTP verify completes register", JSON.stringify(verified?.json || {}));
+  }
 
   // 2. Login
   const loginOk = await request("/api/auth/login", {
@@ -97,7 +156,10 @@ async function main() {
     where: { id: user.id },
     data: { status: "ACTIVE" },
   });
-  if (locked.status === 403 && /lock/i.test(locked.json.message || "")) {
+  if (
+    locked.status === 403 &&
+    (/lock/i.test(locked.json.message || "") || /khóa/i.test(locked.json.message || ""))
+  ) {
     pass("4. User bị khóa login");
   } else {
     fail("4. User bị khóa login", JSON.stringify(locked.json));
@@ -201,7 +263,7 @@ async function main() {
   if (adminLogin.status === 200 && adminOk.status === 200 && adminOk.json.success) {
     pass("12. ADMIN truy cập ADMIN API được phép");
   } else {
-    fail("12. ADMIN truy cập ADMIN API được phép", JSON.stringify(adminOk.json));
+    fail("12. ADMIN truy cập ADMIN API bị từ chối", JSON.stringify(adminOk.json));
   }
 
   const failed = results.filter((item) => !item.ok);

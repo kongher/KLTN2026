@@ -2,6 +2,18 @@ const prisma = require("../config/prisma");
 const AppError = require("../utils/appError");
 const { parsePagination, buildPagination } = require("../utils/query");
 const { isStaffWorking } = require("./scheduleService");
+const couponService = require("./couponService");
+const {
+  releaseCustomerCouponForBooking,
+  markCustomerCouponUsedForBooking,
+} = require("./couponLifecycleService");
+const {
+  notifyNewBookingCreated,
+  notifyBookingConfirmed,
+  notifyBookingRejected,
+  notifyBookingCompleted,
+} = require("./inboxNotificationService");
+const { allocateBookingCode } = require("./bookingCodeService");
 
 const ACTIVE_BOOKING_STATUSES = ["PENDING", "CONFIRMED"];
 
@@ -60,6 +72,7 @@ function isPastBooking(dateString, startTime) {
 function serializeBooking(booking) {
   return {
     id: booking.id,
+    bookingCode: booking.bookingCode,
     customerId: booking.customerId,
     staffId: booking.staffId,
     serviceId: booking.serviceId,
@@ -101,6 +114,8 @@ function serializeBooking(booking) {
           phone: booking.customer.user?.phone,
         }
       : undefined,
+    hasReview: Boolean(booking.reviews?.length),
+    reviewId: booking.reviews?.[0]?.id || null,
   };
 }
 
@@ -119,6 +134,9 @@ const bookingInclude = {
         select: { name: true, email: true, phone: true },
       },
     },
+  },
+  reviews: {
+    select: { id: true, rating: true, status: true },
   },
 };
 
@@ -212,6 +230,11 @@ async function listBookings(query, actor) {
     where.bookingDate = {};
     if (query.from) where.bookingDate.gte = parseDateOnly(query.from);
     if (query.to) where.bookingDate.lte = parseDateOnly(query.to);
+  }
+
+  const search = query.search?.trim();
+  if (search) {
+    where.bookingCode = { contains: search.toUpperCase() };
   }
 
   const [total, rows] = await Promise.all([
@@ -378,31 +401,57 @@ async function createBooking(userId, payload) {
     endTime,
   });
 
-  let voucherId = null;
-  if (payload.voucherId) {
-    const voucher = await prisma.voucher.findUnique({
-      where: { id: payload.voucherId },
-    });
-    if (!voucher || voucher.status !== "ACTIVE") {
-      throw new AppError("Voucher is not available", 400);
-    }
-    voucherId = voucher.id;
-  }
+  const booking = await prisma.$transaction(async (tx) => {
+    let voucherId = null;
+    let customerCouponId = null;
+    let totalPrice = service.price;
 
-  const booking = await prisma.booking.create({
-    data: {
-      customerId: customer.id,
-      staffId: payload.staffId,
-      serviceId: payload.serviceId,
-      voucherId,
-      bookingDate: parseDateOnly(bookingDate),
-      startTime,
-      endTime,
-      status: "PENDING",
-      note: payload.note?.trim() || null,
-      totalPrice: service.price,
-    },
-    include: bookingInclude,
+    if (payload.customerCouponId) {
+      if (payload.voucherId) {
+        throw new AppError("Use either customerCouponId or voucherId, not both", 400);
+      }
+      const reserved = await couponService.reserveCouponForBooking(
+        tx,
+        customer.id,
+        payload.customerCouponId,
+        service.price
+      );
+      voucherId = reserved.voucherId;
+      customerCouponId = payload.customerCouponId;
+      totalPrice = reserved.pricing.totalAmount;
+    } else if (payload.voucherId) {
+      const voucher = await tx.voucher.findUnique({
+        where: { id: payload.voucherId },
+      });
+      if (!voucher || voucher.status !== "ACTIVE" || voucher.isPersonalized) {
+        throw new AppError("Voucher is not available", 400);
+      }
+      voucherId = voucher.id;
+    }
+
+    const bookingCode = await allocateBookingCode(tx);
+
+    return tx.booking.create({
+      data: {
+        bookingCode,
+        customerId: customer.id,
+        staffId: payload.staffId,
+        serviceId: payload.serviceId,
+        voucherId,
+        customerCouponId,
+        bookingDate: parseDateOnly(bookingDate),
+        startTime,
+        endTime,
+        status: "PENDING",
+        note: payload.note?.trim() || null,
+        totalPrice,
+      },
+      include: bookingInclude,
+    });
+  });
+
+  void notifyNewBookingCreated(booking).catch((error) => {
+    console.error("Failed to create booking inbox notifications:", error.message);
   });
 
   return serializeBooking(booking);
@@ -432,6 +481,8 @@ async function cancelBooking(id, userId) {
     data: { status: "CANCELLED" },
     include: bookingInclude,
   });
+
+  await releaseCustomerCouponForBooking(id);
 
   return serializeBooking(updated);
 }
@@ -483,15 +534,20 @@ async function listStaffBookings(query, userId) {
 
   const search = query.search?.trim();
   if (search) {
-    where.customer = {
-      user: {
-        OR: [
-          { name: { contains: search } },
-          { email: { contains: search } },
-          { phone: { contains: search } },
-        ],
+    where.OR = [
+      { bookingCode: { contains: search.toUpperCase() } },
+      {
+        customer: {
+          user: {
+            OR: [
+              { name: { contains: search } },
+              { email: { contains: search } },
+              { phone: { contains: search } },
+            ],
+          },
+        },
       },
-    };
+    ];
   }
 
   if (query.from || query.to) {
@@ -585,6 +641,29 @@ async function transitionStaffBooking(id, userId, action) {
     include: bookingInclude,
   });
 
+  if (transition.to === "CANCELLED" || transition.to === "REJECTED") {
+    await releaseCustomerCouponForBooking(id);
+  }
+  if (transition.to === "COMPLETED") {
+    await markCustomerCouponUsedForBooking(id);
+  }
+
+  if (transition.to === "CONFIRMED") {
+    void notifyBookingConfirmed(updated).catch((error) => {
+      console.error("Failed to notify booking confirmed:", error.message);
+    });
+  }
+  if (transition.to === "REJECTED") {
+    void notifyBookingRejected(updated).catch((error) => {
+      console.error("Failed to notify booking rejected:", error.message);
+    });
+  }
+  if (transition.to === "COMPLETED") {
+    void notifyBookingCompleted(updated).catch((error) => {
+      console.error("Failed to notify booking completed:", error.message);
+    });
+  }
+
   return serializeBooking(updated);
 }
 
@@ -622,6 +701,7 @@ async function listAdminBookings(query) {
         },
       },
       { service: { name: { contains: search } } },
+      { bookingCode: { contains: search.toUpperCase() } },
     ];
   }
 

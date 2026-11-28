@@ -115,7 +115,7 @@ export default function AdminServices() {
             setSearch(event.target.value);
             setPage(1);
           }}
-          placeholder="Tìm theo tên hoặc mô tả"
+          placeholder="Tìm theo tên, mã hoặc mô tả"
           className="min-w-56 flex-1 rounded-xl border border-black/10 bg-spa-white px-3 py-2"
         />
         <select
@@ -140,6 +140,7 @@ export default function AdminServices() {
           <thead className="border-b border-black/5 text-spa-muted">
             <tr>
               <th className="px-4 py-3">Ảnh</th>
+              <th className="px-4 py-3">Mã</th>
               <th className="px-4 py-3">Tên</th>
               <th className="px-4 py-3">Danh mục</th>
               <th className="px-4 py-3">Giá</th>
@@ -158,6 +159,7 @@ export default function AdminServices() {
                     className="h-12 w-16 rounded-xl object-cover"
                   />
                 </td>
+                <td className="px-4 py-3 font-mono text-xs text-spa-muted">{service.code}</td>
                 <td className="px-4 py-3 font-medium text-spa-dark">{service.name}</td>
                 <td className="px-4 py-3">{service.category?.name}</td>
                 <td className="px-4 py-3">{formatPrice(service.price)}</td>

@@ -23,7 +23,8 @@ function isValidDate(value) {
 
 const create = validate((req) => {
   const errors = [];
-  const { serviceId, staffId, bookingDate, startTime, note, voucherId } = req.body || {};
+  const { serviceId, staffId, bookingDate, startTime, note, voucherId, customerCouponId } =
+    req.body || {};
 
   if (!isUuid(serviceId)) errors.push("Invalid serviceId");
   if (!isUuid(staffId)) errors.push("Invalid staffId");
@@ -32,6 +33,14 @@ const create = validate((req) => {
   if (!optionalString(note, 2000)) errors.push("Note is too long");
   if (voucherId !== undefined && voucherId !== null && voucherId !== "" && !isUuid(voucherId)) {
     errors.push("Invalid voucherId");
+  }
+  if (
+    customerCouponId !== undefined &&
+    customerCouponId !== null &&
+    customerCouponId !== "" &&
+    !isUuid(customerCouponId)
+  ) {
+    errors.push("Invalid customerCouponId");
   }
 
   return errors;

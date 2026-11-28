@@ -22,58 +22,18 @@ async function findUserByEmailOrPhone(identifier) {
   });
 }
 
-async function register({ name, email, phone, password }) {
-  const existing = await prisma.user.findFirst({
-    where: {
-      OR: [{ email: email.trim() }, { phone: String(phone).trim() }],
-    },
-  });
+const emailOtpService = require("./emailOtpService");
 
-  if (existing) {
-    if (existing.email === email.trim()) {
-      throw new AppError("Email already exists", 409);
-    }
-    throw new AppError("Phone already exists", 409);
-  }
+async function register(payload) {
+  return emailOtpService.startRegistration(payload);
+}
 
-  const customerRole = await prisma.role.findUnique({
-    where: { name: "CUSTOMER" },
-  });
+async function verifyEmailOtp(payload) {
+  return emailOtpService.verifyRegistrationOtp(payload);
+}
 
-  if (!customerRole) {
-    throw new AppError("Customer role is not configured", 500);
-  }
-
-  const hashed = await hashPassword(password);
-
-  const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: {
-        roleId: customerRole.id,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: String(phone).trim(),
-        password: hashed,
-        status: "ACTIVE",
-      },
-      include: userInclude(),
-    });
-
-    await tx.customer.create({
-      data: {
-        userId: created.id,
-      },
-    });
-
-    return created;
-  });
-
-  const token = signAccessToken(user.id, user.role.name);
-
-  return {
-    user: toAuthUser(user),
-    token,
-  };
+async function resendEmailOtp(payload) {
+  return emailOtpService.resendRegistrationOtp(payload);
 }
 
 async function login({ email, phone, identifier, password }) {
@@ -90,7 +50,11 @@ async function login({ email, phone, identifier, password }) {
   }
 
   if (isAccountBlocked(user.status)) {
-    throw new AppError("Account is locked", 403);
+    throw new AppError("Tài khoản đã bị khóa hãy liên hệ admin.", 403);
+  }
+
+  if (user.role?.name === "CUSTOMER" && user.emailVerified === false) {
+    throw new AppError("Invalid credentials", 401);
   }
 
   const token = signAccessToken(user.id, user.role.name);
@@ -172,6 +136,8 @@ async function resetPassword(token, newPassword) {
 
 module.exports = {
   register,
+  verifyEmailOtp,
+  resendEmailOtp,
   login,
   getMe,
   changePassword,

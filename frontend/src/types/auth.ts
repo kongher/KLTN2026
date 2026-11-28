@@ -12,6 +12,7 @@ export type ProfileUser = AuthUser & {
   phone: string;
   avatar: string | null;
   status: UserStatus;
+  marketingEmailOptIn?: boolean;
 };
 
 export type ApiSuccess<T> = {

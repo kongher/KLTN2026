@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { cancelBooking, fetchBookings } from "../../services/bookingService";
+import ReviewBookingModal from "../../components/ReviewBookingModal";
+import { fetchReview } from "../../services/reviewService";
+import type { ServiceReview } from "../../types/review";
+import { cancelBooking, fetchBooking, fetchBookings } from "../../services/bookingService";
 import type { Booking, BookingStatus } from "../../types/booking";
 import type { Pagination } from "../../types/service";
 import { formatPrice } from "../../utils/format";
@@ -21,6 +24,8 @@ function statusClass(status: BookingStatus) {
 }
 
 export default function MyBookings() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reviewBookingId = searchParams.get("reviewBookingId");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [status, setStatus] = useState<"ALL" | BookingStatus>("ALL");
@@ -30,6 +35,8 @@ export default function MyBookings() {
   const [loading, setLoading] = useState(true);
   const [pendingCancel, setPendingCancel] = useState<Booking | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [editingReview, setEditingReview] = useState<ServiceReview | null>(null);
 
   async function load() {
     setLoading(true);
@@ -49,6 +56,26 @@ export default function MyBookings() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, page]);
+
+  useEffect(() => {
+    if (!reviewBookingId) return;
+    void fetchBooking(reviewBookingId)
+      .then((booking) => {
+        if (booking.status === "COMPLETED") {
+          setReviewBooking(booking);
+          setEditingReview(null);
+        }
+      })
+      .catch(() => {
+        setError("Không tìm thấy lịch để đánh giá");
+      })
+      .finally(() => {
+        const next = new URLSearchParams(searchParams);
+        next.delete("reviewBookingId");
+        setSearchParams(next, { replace: true });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewBookingId]);
 
   async function handleCancel() {
     if (!pendingCancel) return;
@@ -106,12 +133,14 @@ export default function MyBookings() {
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-black/5 text-spa-muted">
             <tr>
+              <th className="px-4 py-3">Mã lịch</th>
               <th className="px-4 py-3">Dịch vụ</th>
               <th className="px-4 py-3">Nhân viên</th>
               <th className="px-4 py-3">Ngày</th>
               <th className="px-4 py-3">Giờ</th>
               <th className="px-4 py-3">Giá</th>
               <th className="px-4 py-3">Trạng thái</th>
+              <th className="px-4 py-3">Đánh giá</th>
               <th className="px-4 py-3">Tạo lúc</th>
               <th className="px-4 py-3">Thao tác</th>
             </tr>
@@ -119,6 +148,7 @@ export default function MyBookings() {
           <tbody>
             {bookings.map((booking) => (
               <tr key={booking.id} className="border-t border-black/5">
+                <td className="px-4 py-3 font-mono text-xs text-spa-muted">{booking.bookingCode}</td>
                 <td className="px-4 py-3 font-medium text-spa-dark">
                   {booking.service?.name || "—"}
                 </td>
@@ -132,6 +162,44 @@ export default function MyBookings() {
                   <span className={`rounded-full px-3 py-1 text-xs ${statusClass(booking.status)}`}>
                     {BOOKING_STATUS_LABEL[booking.status]}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  {booking.status === "COMPLETED" ? (
+                    booking.hasReview ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-spa-dark">
+                          Đã đánh giá <span aria-hidden>⭐</span>
+                        </span>
+                        {booking.reviewId ? (
+                          <button
+                            type="button"
+                            className="text-left text-[#C9A46C] hover:underline"
+                            onClick={() => {
+                              void fetchReview(booking.reviewId!).then((review) => {
+                                setEditingReview(review);
+                                setReviewBooking(booking);
+                              });
+                            }}
+                          >
+                            Chỉnh sửa đánh giá
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="rounded-full bg-[#C9A46C]/15 px-3 py-1 text-sm font-medium text-[#8a6b3c] hover:bg-[#C9A46C]/25"
+                        onClick={() => {
+                          setEditingReview(null);
+                          setReviewBooking(booking);
+                        }}
+                      >
+                        Đánh giá ngay
+                      </button>
+                    )
+                  ) : (
+                    <span className="text-spa-muted">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-spa-muted">
                   {new Date(booking.createdAt).toLocaleString("vi-VN")}
@@ -185,6 +253,18 @@ export default function MyBookings() {
             Sau
           </button>
         </div>
+      ) : null}
+
+      {reviewBooking ? (
+        <ReviewBookingModal
+          booking={reviewBooking}
+          existingReview={editingReview}
+          onClose={() => {
+            setReviewBooking(null);
+            setEditingReview(null);
+          }}
+          onSaved={() => void load()}
+        />
       ) : null}
 
       <ConfirmDialog

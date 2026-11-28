@@ -15,6 +15,7 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -32,6 +33,7 @@ export default function Profile() {
         setName(data.name);
         setPhone(data.phone);
         setAvatar(data.avatar || "");
+        setMarketingOptIn(data.marketingEmailOptIn !== false);
         setUser(data);
       } catch (err) {
         if (!cancelled) setError(getErrorMessage(err));
@@ -51,7 +53,14 @@ export default function Profile() {
     setSaving(true);
 
     try {
-      const updated = await updateProfileRequest({ name, phone, avatar });
+      const updated = await updateProfileRequest({
+        name,
+        phone,
+        avatar,
+        ...(profile?.role !== "ADMIN"
+          ? { marketingEmailOptIn: marketingOptIn }
+          : {}),
+      });
       setProfile(updated);
       setUser(updated);
       setMessage("Đã cập nhật hồ sơ");
@@ -121,6 +130,16 @@ export default function Profile() {
             onChange={setAvatar}
             folder="spa-management/avatars"
           />
+          {profile?.role === "CUSTOMER" || profile?.role === "STAFF" ? (
+            <label className="flex items-center gap-2 text-sm text-stone-600">
+              <input
+                type="checkbox"
+                checked={marketingOptIn}
+                onChange={(event) => setMarketingOptIn(event.target.checked)}
+              />
+              Nhận email khuyến mãi và tin tức từ spa (không ảnh hưởng email nghiệp vụ)
+            </label>
+          ) : null}
           <p className="text-sm text-stone-500">
             Role: {profile?.role} · Status: {profile?.status}
           </p>

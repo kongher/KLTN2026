@@ -4,7 +4,17 @@ const authService = require("../services/authService");
 
 const register = asyncHandler(async (req, res) => {
   const data = await authService.register(req.body);
+  return success(res, "Verification code sent", data);
+});
+
+const verifyEmailOtp = asyncHandler(async (req, res) => {
+  const data = await authService.verifyEmailOtp(req.body);
   return success(res, "Register successful", data, 201);
+});
+
+const resendEmailOtp = asyncHandler(async (req, res) => {
+  const data = await authService.resendEmailOtp(req.body);
+  return success(res, "Verification code sent", data);
 });
 
 const login = asyncHandler(async (req, res) => {
@@ -46,6 +56,8 @@ const logout = asyncHandler(async (req, res) => {
 
 module.exports = {
   register,
+  verifyEmailOtp,
+  resendEmailOtp,
   login,
   me,
   changePassword,

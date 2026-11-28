@@ -33,6 +33,7 @@ export type BookingService = {
 
 export type Booking = {
   id: string;
+  bookingCode: string;
   customerId: string;
   staffId: string;
   serviceId: string;
@@ -48,6 +49,8 @@ export type Booking = {
   service?: BookingService;
   staff?: BookingStaff;
   customer?: BookingCustomer;
+  hasReview?: boolean;
+  reviewId?: string | null;
 };
 
 export type AvailableSlot = {
@@ -72,4 +75,5 @@ export type CreateBookingPayload = {
   startTime: string;
   note?: string;
   voucherId?: string;
+  customerCouponId?: string;
 };
